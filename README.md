@@ -1,7 +1,109 @@
 # OSAC Ansible Project
 
-This repository contains the Ansible roles, playbooks, rulebooks, and
-inventories that are used in the scope of osac.
+This repository contains the Ansible automation layer for
+[OSAC (Open Sovereign AI Cloud)](https://github.com/osac-project).
+It provides the playbooks, roles, and collections that provision and manage
+infrastructure resources — networking, compute, bare-metal hosts, and
+OpenShift clusters — when triggered by the
+[osac-operator](https://github.com/osac-project/osac-operator) via
+Ansible Automation Platform (AAP).
+
+## How it fits into OSAC
+
+OSAC is composed of three main components:
+
+```
+User ─► fulfillment-service (API) ─► osac-operator (watches K8s CRs) ─► AAP ─► osac-aap (this repo)
+```
+
+1. **[fulfillment-service](https://github.com/osac-project/fulfillment-service)** —
+   The backend API that users interact with. It exposes available resource types
+   (NetworkClasses, ComputeClasses, ClusterTemplates) that are auto-discovered
+   from this repo.
+2. **[osac-operator](https://github.com/osac-project/osac-operator)** —
+   A Kubernetes operator that watches Custom Resources (VirtualNetwork, Subnet,
+   SecurityGroup, ComputeInstance, ClusterOrder, etc.) and triggers AAP job
+   templates to provision them.
+3. **osac-aap (this repo)** — The Ansible automation that actually creates
+   infrastructure. Each playbook receives the full K8s CR as its payload,
+   reads an `implementation_strategy` annotation, and dynamically includes the
+   matching template role to do the provisioning.
+
+## What it provisions
+
+### Networking
+
+Playbooks for the full VirtualNetwork → Subnet → SecurityGroup lifecycle, with
+pluggable backends:
+
+| Implementation | Role | Backend |
+|----------------|------|---------|
+| `cudn_net` | ClusterUserDefinedNetwork (CUDN) on OpenShift | OVN-Kubernetes |
+| `netris` | Netris Controller API | Netris |
+| `openstack` | OpenStack Neutron | Neutron |
+
+Plus MetalLB-based PublicIPPool / PublicIP management (`metallb_l2`).
+
+### Compute
+
+- **`ocp_virt_vm`** — Provisions virtual machines on OpenShift Virtualization
+  (KubeVirt), with configurable CPU, memory, storage, and network attachments.
+
+### Bare Metal
+
+- **`bm_host_agent_provisioning` / `bm_host_agent_deprovisioning`** — Agent-based
+  bare-metal host lifecycle.
+- **`bm_private_network` / `bm_host_private_network`** — Private network
+  attachment for bare-metal hosts.
+- Host lease management and the
+  [ESI (Elastic Secure Infrastructure)](https://esi.readthedocs.org) collection
+  (`massopencloud.esi`) for bare-metal provisioning via OpenStack Ironic.
+
+### Clusters
+
+- **`ocp_4_17_small`**, **`ocp_4_17_small_github`**, **`ocp_4_20_small_nico`**,
+  **`ocp_ci_small`** — OpenShift cluster templates with different sizes,
+  authentication methods, and infrastructure backends (ESI, NICo).
+- Multi-step workflow playbooks for hosted cluster create / delete / post-install.
+
+## Architecture
+
+```
+osac-aap/
+├── playbook_osac_*.yml                     # Top-level playbooks (one per AAP job template)
+├── collections/ansible_collections/
+│   ├── osac/
+│   │   ├── service/                        # Shared utility roles (kubeconfig, finalizer, lease, wait_for, ...)
+│   │   ├── templates/                      # Pluggable infrastructure roles with meta/osac.yaml
+│   │   ├── workflows/                      # Multi-step orchestration (cluster, compute_instance)
+│   │   └── config_as_code/                 # AAP configuration (job templates, inventories, credentials)
+│   ├── massopencloud/                      # ESI bare-metal + MOC workflow steps
+│   ├── netris/                             # Netris network backend steps
+│   ├── nico/                               # NVIDIA NICo bare-metal backend steps
+│   ├── dns/                                # DNS management
+│   └── ci/                                 # CI-specific steps
+├── vendor/                                 # Vendored Ansible collections
+├── tests/                                  # Integration test suites
+├── samples/                                # Example payloads
+└── pyproject.toml                          # Python dependencies (uv)
+```
+
+### Key design pattern
+
+Every template role declares its capabilities in `meta/osac.yaml`:
+
+```yaml
+template_type: network
+implementation_strategy: cudn_net
+capabilities:
+  supports_ipv4: true
+  supports_ipv6: true
+  supports_dual_stack: true
+```
+
+Running `playbook_osac_config_as_code.yml` publishes these as NetworkClasses /
+ComputeClasses that the fulfillment-service auto-discovers, making the system
+pluggable — new backends can be added without changing the operator or API.
 
 ## Pre-requisites
 
