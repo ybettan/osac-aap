@@ -23,7 +23,9 @@
 
 - name: Extract PublicIP detach configuration
   ansible.builtin.set_fact:
-    public_ip_name: "{{ public_ip.metadata.name }}"
+    public_ip_name: >-
+      {{ public_ip.metadata.annotations['osac.openshift.io/publicip-name']
+         | default(public_ip.metadata.name) }}
     detach_vm_namespace: >-
       {{ public_ip.metadata.annotations['osac.openshift.io/publicip-target-namespace'] }}
     detach_pool_name: >-

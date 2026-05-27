@@ -26,7 +26,9 @@
 
 - name: Extract PublicIP attach configuration
   ansible.builtin.set_fact:
-    public_ip_name: "{{ public_ip.metadata.name }}"
+    public_ip_name: >-
+      {{ public_ip.metadata.annotations['osac.openshift.io/publicip-name']
+         | default(public_ip.metadata.name) }}
     attach_vm_namespace: >-
       {{ public_ip.metadata.annotations['osac.openshift.io/publicip-target-namespace'] }}
     attach_pool_name: >-
