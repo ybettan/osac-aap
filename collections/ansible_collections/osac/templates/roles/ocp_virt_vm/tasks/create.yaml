@@ -12,7 +12,7 @@
 
 - name: Extract guest OS family from ComputeInstance spec
   ansible.builtin.set_fact:
-    guest_os_family: "{{ compute_instance.spec.guestOSFamily | default(guest_os_family) }}"
+    guest_os_family: "{{ (compute_instance.spec.guestOSFamily | default(guest_os_family)) | lower }}"
 
 - name: Warn on unrecognized guest OS family
   ansible.builtin.debug:

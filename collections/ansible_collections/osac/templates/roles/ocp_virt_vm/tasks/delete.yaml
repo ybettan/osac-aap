@@ -10,7 +10,7 @@
 
 - name: Extract guest OS family from ComputeInstance spec
   ansible.builtin.set_fact:
-    guest_os_family: "{{ compute_instance.spec.guestOSFamily | default(guest_os_family) }}"
+    guest_os_family: "{{ (compute_instance.spec.guestOSFamily | default(guest_os_family)) | lower }}"
 
 - name: Determine target namespace for VM resources
   ansible.builtin.set_fact:
