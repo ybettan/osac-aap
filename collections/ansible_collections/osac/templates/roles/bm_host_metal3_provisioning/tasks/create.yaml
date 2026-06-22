@@ -8,10 +8,12 @@
   ansible.builtin.set_fact:
     template_params: "{{ bare_metal_instance.spec.templateParameters | from_json }}"
 
-- name: Fail if image URL is missing
-  ansible.builtin.fail:
-    msg: "templateParameters.imageURL is required for Metal3 provisioning"
-  when: template_params.imageURL | default('') | length == 0
+- name: Apply image defaults to template parameters
+  ansible.builtin.set_fact:
+    template_params: "{{ {'imageURL': bm_host_metal3_default_image_url,
+                          'imageChecksum': bm_host_metal3_default_image_checksum,
+                          'checksumType': bm_host_metal3_default_checksum_type}
+                        | combine(template_params) }}"
 
 - name: Parse externalHostID into namespace and name
   ansible.builtin.set_fact:
@@ -157,8 +159,8 @@
           spec:
             image:
               url: "{{ template_params.imageURL }}"
-              checksum: "{{ template_params.imageChecksum | default('') }}"
-              checksumType: "{{ template_params.checksumType | default('auto') }}"
+              checksum: "{{ template_params.imageChecksum }}"
+              checksumType: "{{ template_params.checksumType }}"
             online: true
 
     - name: Add networkData to BMH patch
