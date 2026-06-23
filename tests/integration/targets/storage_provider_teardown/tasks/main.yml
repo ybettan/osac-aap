@@ -224,15 +224,20 @@
         protocol: nfs
         provider: vast
     storage_provider_provisioning_target: vmaas
-    storage_provider_action: teardown
     vast_storage_validate_certs: false
 
   tasks:
-    - name: Call storage_provider role with teardown action
+    - name: Call storage_provider role with teardown_cluster_storage action
       ansible.builtin.include_role:
         name: osac.service.storage_provider
       vars:
-        storage_provider_action: teardown
+        storage_provider_action: teardown_cluster_storage
+
+    - name: Call storage_provider role with teardown_backend action
+      ansible.builtin.include_role:
+        name: osac.service.storage_provider
+      vars:
+        storage_provider_action: teardown_backend
 
 # ── Verify: K8s resources deleted (including JIT SCs) ──
 - name: "Storage Provider Teardown - Verify K8s resource deletion"

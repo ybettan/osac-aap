@@ -71,19 +71,19 @@
       ignore_errors: true  # noqa: ignore-errors
       no_log: true
 
-  rescue:
-    - name: Warn about cleanup failure (target cluster may be unreachable)
+    - name: Report teardown_cluster_storage summary
       ansible.builtin.debug:
         msg: >-
-          Cleanup of cluster-side resources failed for tenant '{{ tenant_name }}'.
+          Teardown of cluster-side resources for tenant '{{ tenant_name }}' complete.
+          {{ (_vast_cleanup_sc_list.resources | default([]) | length) }} StorageClasses,
+          {{ (_vast_cleanup_vsc_list.resources | default([]) | length) }} VolumeSnapshotClasses,
+          1 CSI Secret removed from target cluster.
+          Backend resources and hub Secret untouched.
+
+  rescue:
+    - name: Warn about teardown_cluster_storage failure (target cluster may be unreachable)
+      ansible.builtin.debug:
+        msg: >-
+          Teardown of cluster-side resources failed for tenant '{{ tenant_name }}'.
           This may be expected if the target cluster is being destroyed.
           Error: {{ ansible_failed_result.msg | default('unknown') }}
-
-- name: Report cleanup summary
-  ansible.builtin.debug:
-    msg: >-
-      Cleanup for tenant '{{ tenant_name }}' complete.
-      {{ (_vast_cleanup_sc_list.resources | default([]) | length) }} StorageClasses,
-      {{ (_vast_cleanup_vsc_list.resources | default([]) | length) }} VolumeSnapshotClasses,
-      1 CSI Secret removed from target cluster.
-      Backend resources and hub Secret untouched.

@@ -35,6 +35,12 @@
         - name: Parse tier list from env var
           ansible.builtin.set_fact:
             _storage_tiers: "{{ _storage_tiers_raw | from_json }}"
+        - name: Validate STORAGE_TIERS is a JSON array
+          ansible.builtin.assert:
+            that:
+              - _storage_tiers | type_debug == 'list'
+            fail_msg: >-
+              STORAGE_TIERS must be a JSON array of tier objects.
       rescue:
         - name: Fail on malformed STORAGE_TIERS JSON
           ansible.builtin.fail:
