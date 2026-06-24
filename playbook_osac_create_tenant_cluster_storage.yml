@@ -9,6 +9,7 @@
     tenant_uid: "{{ ansible_eda.event.payload.metadata.uid }}"
     _storage_tiers_raw: "{{ lookup('env', 'STORAGE_TIERS') }}"
     _storage_snapshots: "{{ lookup('env', 'STORAGE_SNAPSHOTS_ENABLED') | default('true', true) | bool }}"
+    _storage_provisioning_target: "{{ lookup('env', 'STORAGE_PROVISIONING_TARGET') | default('vmaas', true) }}"
 
   pre_tasks:
     - name: Show EDA Event
@@ -47,6 +48,56 @@
               Value: '{{ _storage_tiers_raw }}'.
               Expected a JSON array of tier objects with name, protocol, and provider fields.
 
+    - name: Set up remote kubeconfig from EDA event when provided
+      when: >-
+        ansible_eda.event.admin_kubeconfig is defined and
+        ansible_eda.event.admin_kubeconfig | length > 0
+      block:
+        - name: Write admin_kubeconfig to temporary file
+          ansible.builtin.set_fact:
+            _remote_kubeconfig: "{{ ansible_eda.event.admin_kubeconfig | osac.service.to_temp_file(suffix='.kubeconfig') }}"
+
+    - name: Fall back to OSAC_REMOTE_CLUSTER_KUBECONFIG env var
+      when: _remote_kubeconfig is not defined or _remote_kubeconfig | length == 0
+      ansible.builtin.set_fact:
+        _remote_kubeconfig: "{{ lookup('env', 'OSAC_REMOTE_CLUSTER_KUBECONFIG') | default('', true) }}"
+
+    - name: Discover cluster name from target cluster infrastructure
+      block:
+        - name: Query OpenShift infrastructure object for cluster name
+          kubernetes.core.k8s_info:
+            kubeconfig: "{{ _remote_kubeconfig if (_remote_kubeconfig | default('') | length > 0) else omit }}"
+            api_version: config.openshift.io/v1
+            kind: Infrastructure
+            name: cluster
+          register: _infra_result
+
+        - name: Set cluster name from infrastructure object
+          ansible.builtin.set_fact:
+            _cluster_name: "{{ _infra_result.resources[0].status.infrastructureName }}"
+          when: >-
+            _infra_result.resources | length > 0 and
+            _infra_result.resources[0].status.infrastructureName is defined
+      rescue:
+        - name: Log infrastructure API fallback
+          ansible.builtin.debug:
+            msg: >-
+              Could not discover cluster name from infrastructure.config.openshift.io/cluster.
+              Falling back to CLUSTER_NAME env var.
+
+    - name: Fall back to CLUSTER_NAME env var
+      when: _cluster_name is not defined or _cluster_name | length == 0
+      ansible.builtin.set_fact:
+        _cluster_name: "{{ lookup('env', 'CLUSTER_NAME') | default('', true) }}"
+
+    - name: Fail if cluster name could not be determined
+      ansible.builtin.fail:
+        msg: >-
+          Could not determine the cluster name. Set CLUSTER_NAME env var on the
+          instance group, or ensure infrastructure.config.openshift.io/cluster
+          is accessible on the target cluster.
+      when: _cluster_name | default('') | length == 0
+
   tasks:
     - name: Provision StorageClasses for all configured tiers
       block:
@@ -56,9 +107,10 @@
           vars:
             storage_provider_action: ensure_storage_class
             storage_provider_tiers: "{{ _storage_tiers }}"
-            storage_provider_provisioning_target: vmaas
+            storage_provider_provisioning_target: "{{ _storage_provisioning_target }}"
             storage_provider_block_encryption_passphrase: "{{ ansible_eda.event.payload.spec.blockEncryptionPassphrase | default('') }}"
             storage_provider_snapshots_enabled: "{{ _storage_snapshots }}"
+            _cluster_name: "{{ _cluster_name }}"
       rescue:
         - name: Warn about StorageClass creation failure
           ansible.builtin.debug:
@@ -72,6 +124,7 @@
           vars:
             storage_provider_action: ensure_storage_class
             storage_provider_tiers: "{{ _storage_tiers }}"
-            storage_provider_provisioning_target: vmaas
+            storage_provider_provisioning_target: "{{ _storage_provisioning_target }}"
             storage_provider_block_encryption_passphrase: "{{ ansible_eda.event.payload.spec.blockEncryptionPassphrase | default('') }}"
             storage_provider_snapshots_enabled: "{{ _storage_snapshots }}"
+            _cluster_name: "{{ _cluster_name }}"
