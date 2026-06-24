@@ -10,6 +10,8 @@ metadata:
 spec:
   controller:
     disabled: {{ .Values.aap.instance.controller.disabled }}
+  eda:
+    disabled: {{ .Values.aap.instance.eda.disabled }}
   hub:
     disabled: {{ .Values.aap.instance.hub.disabled }}
   lightspeed:

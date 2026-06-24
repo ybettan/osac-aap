@@ -5,6 +5,8 @@ metadata:
 spec:
   controller:
     disabled: false
+  eda:
+    disabled: true
   hub:
     disabled: true
   image_pull_policy: IfNotPresent
