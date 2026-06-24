@@ -36,7 +36,6 @@
   vars:
     _provider_tiers: "{{ _computed_provider_tiers }}"
     _provisioning_target: "{{ storage_provider_provisioning_target }}"
-    _cluster_name: "{{ _cluster_name | default('') }}"
 
 - name: "Accumulate tenant config after dispatch (setup only)"
   ansible.builtin.set_fact:

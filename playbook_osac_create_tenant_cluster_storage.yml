@@ -101,7 +101,7 @@
   tasks:
     - name: Provision StorageClasses for all configured tiers
       block:
-        - name: Create StorageClasses on target cluster
+        - name: Create StorageClasses on target cluster  # noqa: jinja[invalid]
           ansible.builtin.include_role:
             name: osac.service.storage_provider
           vars:
@@ -118,7 +118,7 @@
               StorageClass creation failed on first attempt (task: {{ ansible_failed_task.name | default('unknown') }}).
               Retrying once.
 
-        - name: Retry StorageClass creation
+        - name: Retry StorageClass creation  # noqa: jinja[invalid]
           ansible.builtin.include_role:
             name: osac.service.storage_provider
           vars:
