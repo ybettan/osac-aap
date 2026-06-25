@@ -9,3 +9,13 @@
 - name: OSAC AAP
   ansible.builtin.include_role:
     name: infra.aap_configuration.dispatch
+  vars:
+    aap_configuration_dispatcher_exclude_roles:
+      - eda_credential_types
+      - eda_credentials
+      - eda_credential_input_sources
+      - eda_controller_tokens
+      - eda_projects
+      - eda_event_streams
+      - eda_decision_environments
+      - eda_rulebook_activations
