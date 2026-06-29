@@ -228,7 +228,7 @@
           provisioner: "{{ vast_storage_csi_provisioner_map[item.protocol] }}"
           parameters: >-
             {{ _vast_sc_base_params
-               | combine({'root_export': '/osac/' ~ tenant_name ~ '/' ~ item.name})
+               | combine({'root_export': '/osac-' ~ tenant_name ~ '-' ~ _vast_tenant_uid_hash ~ '/' ~ item.name})
                | combine({'view_policy': _vast_nfs_view_policy})
                | combine(({'qos_policy': item.qos_policy} if item.qos_policy is defined else {})) }}
           reclaimPolicy: Delete
@@ -254,7 +254,7 @@
           provisioner: "{{ vast_storage_csi_provisioner_map[item.protocol] }}"
           parameters: >-
             {{ _vast_sc_base_params
-               | combine({'subsystem': 'view-' ~ tenant_name ~ '-' ~ item.name,
+               | combine({'subsystem': 'view-' ~ tenant_name ~ '-' ~ _vast_tenant_uid_hash ~ '-' ~ item.name,
                           'tenant_name': tenant_name})
                | combine({'csi.storage.k8s.io/node-stage-secret-name': _vast_csi_secret_ref.name})
                | combine({'csi.storage.k8s.io/node-stage-secret-namespace': _vast_csi_secret_ref.namespace})
@@ -310,6 +310,7 @@
         vast_username: ""
         vast_password: ""
         _vast_tenant_id: ""
+        _vast_tenant_uid_hash: ""
         _vast_tenant_csi_username: ""
         _vast_tenant_csi_password: ""
         _vast_tenant_endpoint: ""
