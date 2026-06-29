@@ -8,7 +8,6 @@
 #
 # Uses from play scope:
 #   storage_provider_tiers              — full tier list (filtered here per provider)
-#   storage_provider_provisioning_target — provisioning target enum
 #   _cluster_name                        — target cluster name (for volume naming)
 
 - name: "Compute filtered tiers for current provider"
@@ -40,7 +39,6 @@
       kubeconfig: "{{ _remote_kubeconfig | default(omit) }}"
   vars:
     _provider_tiers: "{{ _computed_provider_tiers }}"
-    _provisioning_target: "{{ storage_provider_provisioning_target }}"
 
 - name: "Accumulate tenant config after dispatch (setup only)"
   ansible.builtin.set_fact:
