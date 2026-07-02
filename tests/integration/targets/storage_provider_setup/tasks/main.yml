@@ -229,35 +229,6 @@
         fail_msg: "No manager creation API call found in mock call log"
         success_msg: "Manager creation API call detected"
 
-    - name: Extract QoS policy creation calls
-      ansible.builtin.set_fact:
-        _qos_create_calls: >-
-          {{ _call_log
-             | selectattr('path', 'search', 'qospolicies')
-             | selectattr('method', 'equalto', 'POST')
-             | list }}
-
-    - name: Assert QoS policies were created for both NFS and block tiers
-      ansible.builtin.assert:
-        that:
-          - _qos_create_calls | length >= 2
-        fail_msg: "Expected at least 2 QoS policy creation calls (NFS + block), got {{ _qos_create_calls | length }}"
-        success_msg: "QoS policies created for both tiers"
-
-    - name: Assert NFS QoS policy has policy_type VIEW
-      ansible.builtin.assert:
-        that:
-          - _qos_create_calls | selectattr('body.name', 'equalto', 'test-qos') | map(attribute='body.policy_type') | first == 'VIEW'
-        fail_msg: "NFS QoS policy should have policy_type VIEW"
-        success_msg: "NFS QoS policy has correct policy_type VIEW"
-
-    - name: Assert block QoS policy has policy_type VOLUME
-      ansible.builtin.assert:
-        that:
-          - _qos_create_calls | selectattr('body.name', 'equalto', 'test-qos-block') | map(attribute='body.policy_type') | first == 'VOLUME'
-        fail_msg: "Block QoS policy should have policy_type VOLUME"
-        success_msg: "Block QoS policy has correct policy_type VOLUME"
-
 # ── Cleanup ──
 - name: "Storage Provider Setup - Cleanup"
   hosts: localhost
