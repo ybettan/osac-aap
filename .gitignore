@@ -184,3 +184,7 @@ tests/vast_vms_smoke_test.yml
 # CLAUDE.md
 CLAUDE.md
 .claude/
+
+# Helm dependency build artifacts
+charts/*/charts/
+charts/*/Chart.lock
