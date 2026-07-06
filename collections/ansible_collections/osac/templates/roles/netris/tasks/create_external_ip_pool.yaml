@@ -1,6 +1,6 @@
 ---
-# ExternalIPPool maps to Netris IPAM subnets with purpose=nat
-# Creates one IPAM subnet per CIDR in the pool
+# ExternalIPPool maps to Netris IPAM allocation + subnet with purpose=nat
+# Creates one IPAM allocation (container) and one subnet (usable range) per CIDR
 
 - name: Extract ExternalIPPool configuration
   ansible.builtin.set_fact:
@@ -10,13 +10,26 @@
 - name: Display ExternalIPPool information
   ansible.builtin.debug:
     msg:
-      - "Creating Netris IPAM subnets for ExternalIPPool '{{ pool_name }}'"
+      - "Creating Netris IPAM entries for ExternalIPPool '{{ pool_name }}'"
       - "CIDRs: {{ pool_cidrs }}"
 
 - name: Ensure Netris auth
   ansible.builtin.include_role:
     name: netris.controller.auth
   when: netris_session_cookie is not defined
+
+- name: Create IPAM allocation for each CIDR
+  ansible.builtin.include_role:
+    name: netris.controller.ipam
+    tasks_from: create_allocation
+  vars:
+    ipam_name: "{{ (pool_cidrs | length == 1) | ternary(pool_name, pool_name + '-' + (idx | string)) }}"
+    ipam_cidr: "{{ item }}"
+    ipam_tenant_id: "{{ netris_tenant_id }}"
+  loop: "{{ pool_cidrs }}"
+  loop_control:
+    index_var: idx
+    label: "{{ item }}"
 
 - name: Create IPAM subnet for each CIDR
   ansible.builtin.include_role:
@@ -35,4 +48,4 @@
 
 - name: Display ExternalIPPool creation result
   ansible.builtin.debug:
-    msg: "ExternalIPPool '{{ pool_name }}' — {{ pool_cidrs | length }} IPAM subnet(s) registered"
+    msg: "ExternalIPPool '{{ pool_name }}' — {{ pool_cidrs | length }} IPAM allocation(s) + subnet(s) registered"
