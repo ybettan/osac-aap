@@ -1,7 +1,7 @@
 ---
 # ExternalIP maps to a Netris IPAM /32 subnet (purpose=nat) inside the
-# pool's allocation.  Finds an available IP by enumerating the pool
-# allocation CIDRs and subtracting existing /32 child subnets.
+# pool's allocation.  Finds an available IP by collecting allocated /32
+# subnets and picking the first unused host address from the pool CIDRs.
 
 - name: Validate ExternalIP annotations
   ansible.builtin.assert:
@@ -80,7 +80,7 @@
       ansible.builtin.set_fact:
         _eip_pool_allocs: >-
           {{ (_eip_ipam_tree_resp.json.data | default([]))
-             | selectattr('name', 'match', '^' + eip_pool_name + '(-[0-9]+)?$')
+             | selectattr('name', 'match', '^' + (eip_pool_name | regex_escape) + '(-[0-9]+)?$')
              | list }}
       when: _eip_ipam_tree_resp.json is mapping
 
@@ -91,46 +91,43 @@
           Ensure the ExternalIPPool has been created before allocating ExternalIPs.
       when: _eip_pool_allocs | length == 0
 
-    - name: Build list of all usable IPs across pool CIDRs
+    - name: Collect allocated /32 addresses within pool CIDRs
       ansible.builtin.set_fact:
-        _eip_all_ips: >-
-          {%- set ips = [] -%}
-          {%- for alloc in _eip_pool_allocs -%}
-          {%-   set cidr = alloc.prefix -%}
-          {%-   set net = cidr | ansible.utils.ipaddr('network') -%}
-          {%-   set prefix_len = cidr | ansible.utils.ipaddr('prefix') | int -%}
-          {%-   for i in range(1, 2 ** (32 - prefix_len) - 1) -%}
-          {%-     set _ = ips.append(net | ansible.utils.ipmath(i)) -%}
-          {%-   endfor -%}
-          {%- endfor -%}
-          {{ ips }}
-
-    - name: Collect already-allocated /32 subnets within pool ranges
-      ansible.builtin.set_fact:
-        _eip_allocated_ips: >-
+        _eip_allocated_addrs: >-
           {{ (_eip_ipam_subnets_resp.json.data | default([]))
              | selectattr('prefix', 'defined')
              | selectattr('prefix', 'match', '.*\/32$')
              | map(attribute='prefix')
              | map('ansible.utils.ipaddr', 'address')
-             | select('in', _eip_all_ips)
              | list }}
 
-    - name: Compute available IPs
+    - name: Find first available IP in pool
       ansible.builtin.set_fact:
-        _eip_available_ips: >-
-          {{ _eip_all_ips | reject('in', _eip_allocated_ips) | list }}
+        eip_allocated_address: >-
+          {%- set ns = namespace(found='') -%}
+          {%- for alloc in _eip_pool_allocs -%}
+          {%-   if not ns.found -%}
+          {%-     set cidr = alloc.prefix -%}
+          {%-     set net = cidr | ansible.utils.ipaddr('network') -%}
+          {%-     set prefix_len = cidr | ansible.utils.ipaddr('prefix') | int -%}
+          {%-     for i in range(1, 2 ** (32 - prefix_len) - 1) -%}
+          {%-       if not ns.found -%}
+          {%-         set candidate = net | ansible.utils.ipmath(i) -%}
+          {%-         if candidate not in _eip_allocated_addrs -%}
+          {%-           set ns.found = candidate -%}
+          {%-         endif -%}
+          {%-       endif -%}
+          {%-     endfor -%}
+          {%-   endif -%}
+          {%- endfor -%}
+          {{ ns.found }}
 
     - name: Fail if no IPs available in pool
       ansible.builtin.fail:
         msg: >-
           No available IPs in ExternalIPPool '{{ eip_pool_name }}'.
-          {{ _eip_allocated_ips | length }} of {{ _eip_all_ips | length }} IPs allocated.
-      when: _eip_available_ips | length == 0
-
-    - name: Set allocated address
-      ansible.builtin.set_fact:
-        eip_allocated_address: "{{ _eip_available_ips[0] }}"
+          All addresses in {{ _eip_pool_allocs | map(attribute='prefix') | list }} are allocated.
+      when: eip_allocated_address | length == 0
 
     - name: Display allocated IP
       ansible.builtin.debug:
