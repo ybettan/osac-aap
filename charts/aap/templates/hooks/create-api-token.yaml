@@ -1,17 +1,17 @@
-{{- if .Values.bootstrap.enabled }}
+{{- if .Values.apiToken.create }}
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "osac-aap.fullname" . }}-bootstrap
+  name: {{ include "osac-aap.fullname" . }}-create-token
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "osac-aap.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": post-install,post-upgrade
-    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-weight": "15"
     "helm.sh/hook-delete-policy": before-hook-creation
 spec:
-  backoffLimit: {{ .Values.bootstrap.backoffLimit }}
+  backoffLimit: 5
   template:
     metadata:
       labels:
@@ -31,19 +31,16 @@ spec:
               curl -skf http://${AAP_GATEWAY_HOSTNAME}/api/gateway/v1/ping/ \
                 | grep -q 'good';
               GATEWAY=$?
-              echo "GATEWAY exit code: $GATEWAY"
 
               curl -skf http://${AAP_CONTROLLER_GATEWAY_HOSTNAME}/api/v2/ping/ \
                 | grep -q 'version';
               CONTROLLER_GATEWAY=$?
-              echo "CONTROLLER_GATEWAY exit code: $CONTROLLER_GATEWAY"
 
               auth_code=$(curl -sk -o /dev/null -w "%{http_code}" -X POST \
                 http://${AAP_GATEWAY_HOSTNAME}/api/gateway/v1/tokens/ \
                 -d "username=admin&password=dummy" 2>/dev/null)
               [ "$auth_code" != "503" ] && [ "$auth_code" != "000" ];
               AUTH_UPSTREAM=$?
-              echo "AUTH_UPSTREAM exit code: $AUTH_UPSTREAM (HTTP $auth_code)"
 
               if [ $GATEWAY -eq 0 ] && [ $CONTROLLER_GATEWAY -eq 0 ] && [ $AUTH_UPSTREAM -eq 0 ];
               then
@@ -61,32 +58,42 @@ spec:
         - name: AAP_CONTROLLER_GATEWAY_HOSTNAME
           value: {{ include "osac-aap.controllerHostname" . | quote }}
       containers:
-      - name: bootstrap
-        image: {{ .Values.bootstrap.image }}
-        args:
-        - ansible-playbook
-        - osac.config_as_code.subscription
-        - osac.config_as_code.configure
-        envFrom:
-        - secretRef:
-            name: {{ .Values.configAsCode.secret }}
-        env:
-        - name: AAP_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "osac-aap.instanceName" . }}-admin-password
-              key: password
-        - name: NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
+      - name: create-token
+        image: {{ .Values.bootstrap.cliImage }}
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -euo pipefail
+            AAP_PASSWORD=$(cat /var/run/secrets/aap-admin/password)
+            echo "Creating AAP API token..."
+            TOKEN=$(curl -sk -X POST \
+              -u "admin:${AAP_PASSWORD}" \
+              -H "Content-Type: application/json" \
+              -d '{"description": "osac-operator", "scope": "write"}' \
+              "http://{{ include "osac-aap.gatewayHostname" . }}/api/gateway/v1/tokens/" \
+              | jq -er '.token')
+            [[ -n "${TOKEN}" ]] || { echo "ERROR: Token was empty"; exit 1; }
+            echo "Storing token in secret osac-aap-api-token..."
+            cat <<YAML | oc apply -f -
+            apiVersion: v1
+            kind: Secret
+            metadata:
+              name: osac-aap-api-token
+              namespace: {{ .Release.Namespace }}
+            type: Opaque
+            stringData:
+              token: "${TOKEN}"
+            YAML
+            echo "Token created and stored."
         volumeMounts:
-        - name: config-as-code-manifest-volume
-          mountPath: /var/secrets/config-as-code-manifest
+        - name: aap-admin-password
+          mountPath: /var/run/secrets/aap-admin
           readOnly: true
       volumes:
-      - name: config-as-code-manifest-volume
+      - name: aap-admin-password
         secret:
-          secretName: {{ .Values.configAsCode.manifestSecret }}
+          secretName: {{ include "osac-aap.instanceName" . }}-admin-password
+      serviceAccountName: {{ .Values.serviceAccounts.osacSa }}
       restartPolicy: Never
 {{- end }}

@@ -28,6 +28,9 @@ configAsCode:
   projectGitBranch: ""
   importAgentsEnabled: false
   importBcmAgentsEnabled: false
+  manifest:
+    create: false
+    data: {}
 
 importAgents:
   servers: []
@@ -39,3 +42,25 @@ importBcmAgents:
 serviceAccounts:
   osacSa: "osac-sa"
   templatePublisher: "template-publisher"
+
+apiToken:
+  create: true
+
+instanceGroups:
+  clusterFulfillment:
+    enabled: false
+    config: {}
+    secret: {}
+  networkFulfillment:
+    enabled: false
+    config: {}
+    secret: {}
+  storageFulfillment:
+    enabled: false
+    config: {}
+    secret: {}
+  publishTemplates:
+    enabled: false
+    config:
+      OSAC_TEMPLATE_COLLECTIONS: ""
+      OSAC_FULFILLMENT_SERVICE_URI: ""
