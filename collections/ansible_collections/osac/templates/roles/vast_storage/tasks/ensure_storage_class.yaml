@@ -69,7 +69,6 @@
         - name: Query OpenShift infrastructure object for cluster name
           kubernetes.core.k8s_info:
             kubeconfig: "{{ _remote_kubeconfig | default(omit) }}"
-            validate_certs: false
             api_version: config.openshift.io/v1
             kind: Infrastructure
             name: cluster
