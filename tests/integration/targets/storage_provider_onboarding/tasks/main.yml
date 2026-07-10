@@ -69,7 +69,6 @@
       - name: default
         protocol: nfs
         provider: vast
-    storage_provider_provisioning_target: vmaas
     storage_provider_snapshots_enabled: false
     vast_storage_validate_certs: false
 

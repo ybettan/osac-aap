@@ -106,7 +106,6 @@
         protocol: block
         provider: vast
     storage_provider_action: ensure_storage_class
-    storage_provider_provisioning_target: vmaas
     storage_provider_snapshots_enabled: true
     storage_provider_block_encryption_passphrase: "test-encryption-passphrase"
     vast_storage_validate_certs: false
@@ -156,6 +155,8 @@
           - "_sc_result.resources[0].parameters['csi.storage.k8s.io/provisioner-secret-name'] == 'vast-csi-test-ensuresc'"
           - "_sc_result.resources[0].parameters['csi.storage.k8s.io/provisioner-secret-namespace'] == 'osac-system'"
           - _sc_result.resources[0].parameters.view_policy == "osac-test-ensuresc-nfs"
+          - _sc_result.resources[0].parameters.volumeNameFormat == "csi:{id}:{namespace}:{name}:test-cluster"
+          - _sc_result.resources[0].parameters.ephemeralVolumeNameFormat == "eph:{id}:{namespace}:{name}:test-cluster"
         fail_msg: "StorageClass parameters incorrect: {{ _sc_result.resources[0].parameters }}"
         success_msg: "StorageClass parameters correct"
 
@@ -228,6 +229,7 @@
           - _block_sc_result.resources[0].parameters.subsystem == "view-test-ensuresc-d0f7f176-block-tier"
           - "_block_sc_result.resources[0].parameters['csi.storage.k8s.io/provisioner-secret-name'] == 'vast-csi-test-ensuresc'"
           - "_block_sc_result.resources[0].parameters['csi.storage.k8s.io/provisioner-secret-namespace'] == 'osac-system'"
+          - _block_sc_result.resources[0].parameters.volumeGroup == "test-cluster/{namespace}"
           - _block_sc_result.resources[0].parameters.storagePath is not defined
           - _block_sc_result.resources[0].parameters.viewPolicy is not defined
           - _block_sc_result.resources[0].parameters.secretName is not defined
@@ -358,7 +360,6 @@
         protocol: block
         provider: vast
     storage_provider_action: ensure_storage_class
-    storage_provider_provisioning_target: vmaas
     storage_provider_snapshots_enabled: true
     storage_provider_block_encryption_passphrase: "test-encryption-passphrase"
     vast_storage_validate_certs: false
