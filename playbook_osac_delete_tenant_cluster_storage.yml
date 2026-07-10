@@ -4,8 +4,22 @@
   gather_facts: false
 
   vars:
-    tenant_name: "{{ ansible_eda.event.payload.metadata.name }}"
-    tenant_namespace: "{{ ansible_eda.event.payload.metadata.namespace }}"
+    tenant_name: "{{ ansible_eda.event.payload.metadata.annotations['osac.openshift.io/tenant'] }}"
+    # This template is triggered from two different call sites in storage_controller.go,
+    # sharing the same AAP job template but passing different resource kinds as payload:
+    #   - handleClusterStorageDeprovisioning (hub storage) sends a Tenant object, whose own
+    #     metadata.namespace is "osac-tenants" — correct as-is, matches the live
+    #     vast-csi-<tenant> Secret's actual location on the hub.
+    #   - handleCaaSDelete (CaaS/guest-cluster storage) sends a ClusterOrder object, whose
+    #     metadata.namespace ("osac-devel") is hub-side bookkeeping with no relation to the
+    #     guest cluster. For that case we target the fixed OSAC system namespace on the guest
+    #     cluster instead (mirrors the create playbook's routing).
+    tenant_namespace: >-
+      {%- if ansible_eda.event.payload.kind == 'ClusterOrder' -%}
+      openshift-osac-storage
+      {%- else -%}
+      {{ ansible_eda.event.payload.metadata.namespace }}
+      {%- endif -%}
     _storage_tiers_raw: "{{ lookup('env', 'STORAGE_TIERS') }}"
 
   pre_tasks:
