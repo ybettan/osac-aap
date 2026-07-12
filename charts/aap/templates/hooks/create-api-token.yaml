@@ -86,6 +86,10 @@ spec:
               token: "${TOKEN}"
             YAML
             echo "Token created and stored."
+            echo "Restarting operator to pick up new token..."
+            oc rollout restart deploy/osac-operator -n {{ .Release.Namespace }}
+            oc rollout status deploy/osac-operator -n {{ .Release.Namespace }} --timeout=120s
+            echo "Operator restarted."
         volumeMounts:
         - name: aap-admin-password
           mountPath: /var/run/secrets/aap-admin
