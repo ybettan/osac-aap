@@ -38,7 +38,7 @@ spec:
 
               auth_code=$(curl -sk -o /dev/null -w "%{http_code}" -X POST \
                 http://${AAP_GATEWAY_HOSTNAME}/api/gateway/v1/tokens/ \
-                -d "username=admin&password=dummy" 2>/dev/null)
+                -d "username=admin&password=dummy")
               [ "$auth_code" != "503" ] && [ "$auth_code" != "000" ];
               AUTH_UPSTREAM=$?
 
