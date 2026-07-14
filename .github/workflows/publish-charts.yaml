@@ -13,6 +13,8 @@ jobs:
   guard:
     name: Verify image build succeeded
     runs-on: ubuntu-latest
+    # Read-only job: only inspects workflow_run event metadata, no repo/API access needed.
+    permissions: {}
     if: >
       github.event.workflow_run.event == 'push' &&
       startsWith(github.event.workflow_run.head_branch, 'v')
@@ -21,12 +23,20 @@ jobs:
       sha: ${{ github.event.workflow_run.head_sha }}
     steps:
     - name: Check image build result
+      env:
+        CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+        HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
       run: |
-        if [[ "${{ github.event.workflow_run.conclusion }}" != "success" ]]; then
-          echo "::error::Image build for tag ${{ github.event.workflow_run.head_branch }} did not succeed (conclusion: ${{ github.event.workflow_run.conclusion }}). Refusing to publish chart."
+        semver_re='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+(-[0-9A-Za-z]+)*(\.[0-9A-Za-z]+(-[0-9A-Za-z]+)*)*)?(\+[0-9A-Za-z]+(-[0-9A-Za-z]+)*(\.[0-9A-Za-z]+(-[0-9A-Za-z]+)*)*)?$'
+        if ! [[ "$HEAD_BRANCH" =~ $semver_re ]]; then
+          echo "::error::Tag '$HEAD_BRANCH' is not a valid semver release tag"
           exit 1
         fi
-        echo "Image build succeeded for tag ${{ github.event.workflow_run.head_branch }}"
+        if [[ "$CONCLUSION" != "success" ]]; then
+          echo "::error::Image build for tag $HEAD_BRANCH did not succeed (conclusion: $CONCLUSION). Refusing to publish chart."
+          exit 1
+        fi
+        echo "Image build succeeded for tag $HEAD_BRANCH"
 
   publish-aap-chart:
     name: Publish osac-aap chart
@@ -37,9 +47,10 @@ jobs:
       packages: write
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       with:
         ref: ${{ needs.guard.outputs.sha }}
+        persist-credentials: false
 
     - name: Set up Helm
       uses: azure/setup-helm@v5
@@ -69,6 +80,18 @@ jobs:
       run: |
         helm push osac-aap-${{ steps.version.outputs.version }}.tgz \
           oci://${{ env.REGISTRY }}/${{ env.CHARTS_REPO }}
+
+    - name: Verify tag still points at the guarded commit
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ needs.guard.outputs.tag }}
+        GUARDED_SHA: ${{ needs.guard.outputs.sha }}
+      run: |
+        CURRENT_SHA="$(gh api "repos/${{ github.repository }}/git/refs/tags/${TAG}" --jq .object.sha)"
+        if [[ "$CURRENT_SHA" != "$GUARDED_SHA" ]]; then
+          echo "::error::Tag '${TAG}' now points at ${CURRENT_SHA}, not the guarded commit ${GUARDED_SHA} (force-pushed?). Refusing to create a release."
+          exit 1
+        fi
 
     - name: Create GitHub Release
       run: |
