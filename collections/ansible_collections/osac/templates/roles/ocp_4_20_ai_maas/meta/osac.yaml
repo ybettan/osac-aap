@@ -68,6 +68,7 @@ parameters:
       profile with CPU, memory, and optional accelerator constraints.
     type: list
     required: false
+    default: []
   - name: external_models
     title: External Models
     description: >
@@ -76,3 +77,4 @@ parameters:
       is deployed. Requires enable_maas=true.
     type: list
     required: false
+    default: []
