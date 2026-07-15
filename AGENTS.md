@@ -99,8 +99,10 @@ capabilities:
 ```yaml
 template_type: compute_instance
 spec_defaults:
-  cores: 2
-  memory_gib: 2
+  # cores/memory_gib are reserved (removed) on ComputeInstanceTemplateSpecDefaults —
+  # instance_type is now the sole, mandatory way to size a ComputeInstance.
+  # Set spec_defaults.instance_type here to give the template a default, or
+  # omit it to require callers to always pass instance_type explicitly.
   boot_disk:
     size_gib: 10
   image:
@@ -437,8 +439,7 @@ OPA policies enforce isolation at runtime (handled by fulfillment-service).
    template_type: compute_instance
    implementation_strategy: <backend>
    spec_defaults:
-     cores: 2
-     memory_gib: 2
+     # cores/memory_gib are reserved (removed); instance_type is mandatory.
      boot_disk:
        size_gib: 10
    parameters:

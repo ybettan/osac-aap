@@ -221,14 +221,12 @@ class ComputeInstanceTemplateSpecDefaults(Base):
     """Default values for compute instance spec fields.
 
     Maps from Ansible camelCase (defaults/main.yaml) to proto snake_case.
+
+    Note: cores/memory_gib are intentionally absent — they are reserved
+    (removed) on the fulfillment-service ComputeInstanceTemplateSpecDefaults
+    proto. instance_type is now the sole way to size a ComputeInstance.
     """
 
-    cores: int | None = None
-    memory_gib: int | None = pydantic.Field(
-        default=None,
-        validation_alias=pydantic.AliasChoices("memoryGiB", "memoryGib", "memory_gib"),
-        serialization_alias="memory_gib",
-    )
     image: ComputeInstanceImage | None = None
     boot_disk: ComputeInstanceDisk | None = pydantic.Field(
         default=None,
