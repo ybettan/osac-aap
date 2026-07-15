@@ -111,6 +111,12 @@ spec:
             oc rollout restart deploy/osac-operator -n {{ .Release.Namespace }}
             oc rollout status deploy/osac-operator -n {{ .Release.Namespace }} --timeout=120s
             echo "Operator restarted."
+            if oc get deploy/bmf-operator-controller-manager -n {{ .Release.Namespace }} &>/dev/null; then
+              echo "Restarting BMF operator to pick up new token..."
+              oc rollout restart deploy/bmf-operator-controller-manager -n {{ .Release.Namespace }}
+              oc rollout status deploy/bmf-operator-controller-manager -n {{ .Release.Namespace }} --timeout=120s
+              echo "BMF operator restarted."
+            fi
         env:
         - name: HOME
           value: /tmp
