@@ -217,5 +217,5 @@
 
 - name: Delete cluster (delegate to parent)
   ansible.builtin.include_role:
-    name: osac.templates.ocp_4_17_small
+    name: osac.templates.ocp_small
     tasks_from: delete

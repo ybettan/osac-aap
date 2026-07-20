@@ -59,7 +59,7 @@ osac.service.external_access
 The Netris network class is not tied to a specific template. It plugs into any
 template that uses the `osac.service.cluster_infra` and
 `osac.service.external_access` roles. The standard hosted cluster template is
-`ocp_4_17_small` (`collections/ansible_collections/osac/templates/roles/ocp_4_17_small/`),
+`ocp_small` (`collections/ansible_collections/osac/templates/roles/ocp_small/`),
 which orchestrates the following steps — each overridable via
 `install_step_*_override` variables:
 
@@ -80,7 +80,7 @@ playbook_osac_create_hosted_cluster.yml
   |
   +-- pre-tasks: cluster_settings, extract_template_info, working namespace
   |
-  +-- template install tasks (ocp_4_17_small):
+  +-- template install tasks (ocp_small):
       |
       +-- 1. Create HostedCluster + NodePool CRs
       |

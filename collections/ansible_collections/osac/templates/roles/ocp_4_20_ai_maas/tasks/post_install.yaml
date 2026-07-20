@@ -1,5 +1,5 @@
 ---
-# Post-install hook: called by ocp_4_17_small after cluster is provisioned.
+# Post-install hook: called by ocp_small after cluster is provisioned.
 # Orchestrates: operator installation → MaaS configuration → verification.
 # Uses admin_kubeconfig from the parent pipeline (retrieved at step 5).
 
@@ -10,7 +10,7 @@
       - admin_kubeconfig | length > 0
     fail_msg: >-
       admin_kubeconfig is not set. In production, this is provided by the
-      ocp_4_17_small pipeline. For local testing, set KUBECONFIG env var
+      ocp_small pipeline. For local testing, set KUBECONFIG env var
       or pass admin_kubeconfig as a playbook variable.
 
 - name: Install platform operators (BOM Phase 2 + 3)

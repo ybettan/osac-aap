@@ -15,7 +15,7 @@
   connection: local
 
   vars:
-    # Simulate admin_kubeconfig (normally set by ocp_4_17_small pipeline)
+    # Simulate admin_kubeconfig (normally set by ocp_small pipeline)
     admin_kubeconfig: "{{ lookup('env', 'KUBECONFIG') | default('~/.kube/config', true) }}"
 
   pre_tasks:

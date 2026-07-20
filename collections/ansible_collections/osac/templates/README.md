@@ -42,24 +42,16 @@ ansible-galaxy collection install osac-templates-*.tar.gz
 
 ### Cluster Templates
 
-#### `ocp_4_17_small`
-Minimal OpenShift 4.17 cluster configuration.
+#### `ocp_small`
+Minimal OpenShift cluster configuration.
 
 **Default Configuration:**
 - 2 nodes
 - Resource class: fc430
-- OpenShift 4.17 release
 
 **Required Parameters:**
 - `pull_secret`: Red Hat pull secret for OpenShift installation
 - `ssh_public_key`: SSH public key for node access
-
-#### `ocp_4_17_small_github`
-OpenShift 4.17 cluster with GitHub OAuth authentication pre-configured.
-
-**Additional Parameters:**
-- GitHub OAuth client credentials
-- Organization/team membership configuration
 
 ### VM Templates
 

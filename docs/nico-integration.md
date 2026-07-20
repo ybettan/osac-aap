@@ -98,7 +98,7 @@ metadata:
   annotations:
     osac.openshift.io/tenant: "osac-devel"
 spec:
-  templateName: ocp_4_17_small
+  templateName: ocp_4_20_small_nico
   nodeRequests:
     - resourceClass: my-instance-type
       numberOfNodes: 2

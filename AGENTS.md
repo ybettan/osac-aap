@@ -138,7 +138,7 @@ capabilities:
     - hcp_control_plane
 ```
 
-**Cluster templates** (e.g., `ocp_4_17_small`):
+**Cluster templates** (e.g., `ocp_small`):
 ```yaml
 title: Display name
 description: Cluster template description
@@ -164,8 +164,8 @@ allowed_resource_classes: []
 - `ocp_virt_vm` — KubeVirt VMs on OpenShift Virtualization
 
 **Clusters:**
-- `ocp_4_17_small`, `ocp_4_17_small_github` — OpenShift 4.17 templates
-- `ocp_4_20_ai_maas`, `ocp_4_20_small_nico` — OpenShift 4.20 with AI/MaaS and NICo
+- `ocp_small` — Standard OpenShift cluster template
+- `ocp_4_20_ai_maas` — OpenShift 4.20 with AI/MaaS
 - `ocp_ci_small` — CI cluster template
 
 **Storage:**
