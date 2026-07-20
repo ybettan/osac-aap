@@ -80,6 +80,8 @@ TypeMapping: dict[AnsibleArgumentType | type, ProtobufType] = {
     str: ProtobufType.STRING,
     "list": ProtobufType.ANY,
     "dict": ProtobufType.ANY,
+    list: ProtobufType.ANY,
+    dict: ProtobufType.ANY,
     "bool": ProtobufType.BOOL,
     bool: ProtobufType.BOOL,
     "int": ProtobufType.INT,
@@ -163,9 +165,9 @@ class TemplateParameter(Base):
         type to the protobuf type string via the `TypeMapping` table, and then
         storing the actual value in the "value" key.
 
-        Note that we only handle scalar values; an attempt to use something
-        other than a string, bool, float, or int will result in a validation
-        error.
+        Scalar values are mapped to their specific protobuf wrappers
+        (StringValue, BoolValue, etc.) while list and dict values are
+        mapped to google.protobuf.Value (ANY).
 
         [1]: https://raw.githubusercontent.com/osac-project/fulfillment-api/refs/heads/main/openapi/v3/openapi.yaml
         """
@@ -254,7 +256,7 @@ class TemplateParameterDefinition(Base):
     description: str | None = None
     type: str = "string"
     required: bool = False
-    default: str | int | float | bool | None = None
+    default: str | int | float | bool | list[Any] | dict[str, Any] | None = None
     validation: ParameterValidation | None = None
 
 
