@@ -171,7 +171,7 @@
     - name: "{{ external_access_api_domain }}"
       addr: "{{ external_access_api_public_ip }}"
     - name: "{{ external_access_api_int_domain }}"
-      addr: "{{ external_access_api_public_ip }}"
+      addr: "{{ external_access_api_internal_ip }}"
     - name: "*.{{ external_access_ingress_domain }}"
       addr: "{{ external_access_ingress_public_ip }}"
 
